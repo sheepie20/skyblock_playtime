@@ -1,0 +1,4 @@
+.venv
+.env
+playtime.db
+__pycache__
