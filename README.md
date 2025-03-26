@@ -1,4 +1,4 @@
-# Discord Playtime Tracker Bot
+# Playtime Tracker Bot
 
 ## Overview
 This Discord bot allows users to submit their playtime for specific dates and stores the data in an SQLite database. Users can generate graphs to visualize their playtime over time and compare their playtime with other users.
