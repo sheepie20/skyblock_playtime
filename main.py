@@ -4,7 +4,6 @@ from discord.ext import commands
 import aiosqlite
 import os
 import csv
-import pretty_help
 import matplotlib.pyplot as plt
 import io
 import datetime
@@ -19,7 +18,6 @@ bot = commands.Bot(
     command_prefix="!",
     intents=intents,
     status=status,
-    help_command=pretty_help.PrettyHelp(typing=False)
 )
 
 DATABASE = "playtime.db"
@@ -42,6 +40,105 @@ async def initialize_db():
             )
         ''')
         await db.commit()
+
+@app_commands.command(name="help", description="Show a detailed help guide for the Playtime Tracking Bot")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+async def help_command(interaction: discord.Interaction):
+    general_help = discord.Embed(
+        title="🎮 Playtime Tracker Bot - Help Guide",
+        description="Track and manage your gaming playtime with these commands!",
+        color=discord.Color.blue()
+    )
+    general_help.add_field(
+        name="📊 Tracking Commands",
+        value=(
+            "• `/submit`: Log your playtime for a specific date\n"
+            "  - Specify hours played and optionally a date\n"
+            "  - Default is today's date if not specified"
+        ),
+        inline=False
+    )
+    general_help.add_field(
+        name="🎯 Goal Commands",
+        value=(
+            "• `/setgoal`: Set your daily playtime goal\n"
+            "  - Input your desired playtime in hours\n\n"
+            "• `/remindme`: Check progress towards your daily goal\n"
+            "  - Shows remaining time or confirms goal completion"
+        ),
+        inline=False
+    )
+
+    stats_help = discord.Embed(
+        title="📈 Statistics and Analysis",
+        color=discord.Color.green()
+    )
+    stats_help.add_field(
+        name="📊 Visualization Commands",
+        value=(
+            "• `/graph`: Generate a line chart of your playtime\n"
+            "  - Optional: Specify a user to view their graph\n"
+            "  - Shows total playtime aggregated by date\n\n"
+            "• `/compare`: Compare playtime between two users\n"
+            "  - Visualize playtime trends side by side"
+        ),
+        inline=False
+    )
+    stats_help.add_field(
+        name="🏆 Leaderboard and Progress",
+        value=(
+            "• `/leaderboard`: View top players by total playtime\n"
+            "  - Default shows top 10 users\n"
+            "  - Customize number of users displayed\n\n"
+            "• `/streak`: Check your consecutive playtime tracking days"
+        ),
+        inline=False
+    )
+
+    utility_help = discord.Embed(
+        title="🛠️ Utility Commands",
+        color=discord.Color.purple()
+    )
+    utility_help.add_field(
+        name="📁 Data Management",
+        value=(
+            "• `/exportdata`: Download your playtime records\n"
+            "  - Export as CSV file\n"
+            "  - Optional: Export data for another user"
+        ),
+        inline=False
+    )
+    utility_help.add_field(
+        name="ℹ️ Additional Information",
+        value=(
+            "• All commands support direct messaging\n"
+            "• Dates should be in YYYY-MM-DD format\n"
+            "• Playtime is measured in hours"
+        ),
+        inline=False
+    )
+
+    class HelpView(discord.ui.View):
+        def __init__(self, embeds):
+            super().__init__()
+            self.embeds = embeds
+            self.current_page = 0
+
+        @discord.ui.button(label="◀️ Previous", style=discord.ButtonStyle.secondary)
+        async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+            self.current_page = (self.current_page - 1) % len(self.embeds)
+            await interaction.response.edit_message(embed=self.embeds[self.current_page])
+
+        @discord.ui.button(label="Next ▶️", style=discord.ButtonStyle.secondary)
+        async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+            self.current_page = (self.current_page + 1) % len(self.embeds)
+            await interaction.response.edit_message(embed=self.embeds[self.current_page])
+
+    help_embeds = [general_help, stats_help, utility_help]
+    view = HelpView(help_embeds)
+
+    await interaction.response.send_message(embed=help_embeds[0], view=view)
 
 @app_commands.command(name="setgoal", description="Set your daily playtime goal (in hours)")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -301,6 +398,7 @@ async def on_ready():
     bot.tree.add_command(streak)
     bot.tree.add_command(setgoal)
     bot.tree.add_command(remindme)
+    bot.tree.add_command(help_command)
     await bot.tree.sync()
     await bot.load_extension("cogs.goal_checker")
     print(f"Logged in as {bot.user} and slash commands have been synced.")
